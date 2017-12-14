@@ -66,9 +66,21 @@ def todo_json(id):
 def todos():
     if not session.get('logged_in'):
         return redirect('/login')
-    cur = g.db.execute("SELECT * FROM todos WHERE user_id = '%s'" % session['user']['id'])
+
+    nbElementByPage = 5
+    cur = g.db.execute("SELECT COUNT(id) as elementTotal FROM todos WHERE user_id = '%s'" % session['user']['id'])
+    elementTotal = cur.fetchone()["elementTotal"]
+    nbPageTotal = int(elementTotal / nbElementByPage) + (21 % nbElementByPage > 0)
+    currentPage = 0
+    getPage = request.args.get('page')
+    if getPage and getPage.isdigit():
+        currentPage = int(getPage)
+    offset = currentPage * nbElementByPage
+
+    cur = g.db.execute("SELECT * FROM todos WHERE user_id = '%s' LIMIT %d, %d" % (session['user']['id'], offset, nbElementByPage))
     todos = cur.fetchall()
-    return render_template('todos.html', todos=todos, message=session.pop('message', None))
+
+    return render_template('todos.html', todos=todos, message=session.pop('message', None), nbPageTotal=nbPageTotal, currentPage=currentPage)
 
 
 @app.route('/todo', methods=['POST'])

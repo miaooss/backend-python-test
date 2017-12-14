@@ -48,5 +48,22 @@
             </form>
         </tr>
     </table>
+    {% if nbPageTotal > 0 %}
+        <div class="btn-group">
+            {% if currentPage > 0 %}
+                <a class="btn btn-secondary" href="/todo?page={{ currentPage - 1 }}" >Prev</a>
+            {% endif %}
+            {% for i in range(nbPageTotal) %}
+                {% if currentPage == i %}
+                    <a class="btn btn-secondary active" href="/todo?page={{ i}}" >{{ i+ 1 }}</a>
+                {% else %}
+                    <a class="btn btn-secondary" href="/todo?page={{ i }}" >{{ i + 1 }}</a>
+                {% endif %}
+            {% endfor %}
+            {% if currentPage < nbPageTotal -1 %}
+                <a class="btn btn-secondary" href="/todo?page={{ currentPage + 1 }}">Next</a>
+            {% endif %}
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

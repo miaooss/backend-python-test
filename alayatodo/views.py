@@ -1,4 +1,4 @@
-from alayatodo import app
+from alayatodo import ( app, todo_repo, user_repo )
 from flask import (
     g,
     redirect,
@@ -26,9 +26,7 @@ def login_POST():
     username = request.form.get('username')
     password = request.form.get('password')
 
-    sql = "SELECT * FROM users WHERE username = '%s' AND password = '%s'";
-    cur = g.db.execute(sql % (username, password))
-    user = cur.fetchone()
+    user = user_repo.login(username, password)
     if user:
         session['user'] = dict(user)
         session['logged_in'] = True
@@ -46,15 +44,13 @@ def logout():
 
 @app.route('/todo/<id>', methods=['GET'])
 def todo(id):
-    cur = g.db.execute("SELECT * FROM todos WHERE id ='%s' AND user_id='%s'" % (id, session['user']['id']))
-    todo = cur.fetchone()
+    todo = todo_repo.findById(session['user']['id'], id)
     return render_template('todo.html', todo=todo)
 
 
 @app.route('/todo/<id>/json', methods=['GET'])
 def todo_json(id):
-    cur = g.db.execute("SELECT * FROM todos WHERE id ='%s' AND user_id='%s'" % (id, session['user']['id']))
-    todo = cur.fetchone()
+    todo = todo_repo.findById(id, session['user']['id'])
     if todo:
         return json.dumps({u"id": todo["id"], u"user_id": todo["user_id"], u"description": todo["description"]})
     else:
@@ -68,8 +64,7 @@ def todos():
         return redirect('/login')
 
     nbElementByPage = 5
-    cur = g.db.execute("SELECT COUNT(id) as elementTotal FROM todos WHERE user_id = '%s'" % session['user']['id'])
-    elementTotal = cur.fetchone()["elementTotal"]
+    elementTotal = todo_repo.countAll(session['user']['id'])
     nbPageTotal = int(elementTotal / nbElementByPage) + (21 % nbElementByPage > 0)
     currentPage = 0
     getPage = request.args.get('page')
@@ -77,9 +72,7 @@ def todos():
         currentPage = int(getPage)
     offset = currentPage * nbElementByPage
 
-    cur = g.db.execute("SELECT * FROM todos WHERE user_id = '%s' LIMIT %d, %d" % (session['user']['id'], offset, nbElementByPage))
-    todos = cur.fetchall()
-
+    todos = todo_repo.findLimited(session['user']['id'], nbElementByPage, offset)
     return render_template('todos.html', todos=todos, message=session.pop('message', None), nbPageTotal=nbPageTotal, currentPage=currentPage)
 
 
@@ -90,11 +83,7 @@ def todos_POST():
         return redirect('/login')
     description = request.form.get('description', '')
     if description:
-        g.db.execute(
-            "INSERT INTO todos (user_id, description) VALUES ('%s', '%s')"
-            % (session['user']['id'], description)
-        )
-        g.db.commit()
+        todo_repo.add(session['user']['id'], description)
         session['message'] = "Your new todo as been correctly added"
     return redirect('/todo')
 
@@ -103,8 +92,7 @@ def todos_POST():
 def todo_delete(id):
     if not session.get('logged_in'):
         return redirect('/login')
-    g.db.execute("DELETE FROM todos WHERE id ='%s' AND user_id='%s'" % (id, session['user']['id']))
-    g.db.commit()
+    todo_repo.delete(session['user']['id'], id)
     session['message'] = "Your todo as been correctly removed"
     return redirect('/todo')
 
@@ -114,8 +102,7 @@ def todo_complete(id):
     if not session.get('logged_in'):
         return redirect('/login')
 
-    g.db.execute("UPDATE todos SET status = %d WHERE id = '%s' AND user_id = '%s'" % (1, id, session['user']['id']))
-    g.db.commit()
+    todo_repo.updateStatus(session['user']['id'], id, 1)
     return redirect('/todo')
 
 

@@ -1,0 +1,1 @@
+from flask import (g)def login(username, password):    sql = "SELECT * FROM users WHERE username = '%s' AND password = '%s'"    cur = g.db.execute(sql % (username, password))    return cur.fetchone()

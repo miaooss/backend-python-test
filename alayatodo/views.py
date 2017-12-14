@@ -6,6 +6,7 @@ from flask import (
     request,
     session
     )
+import json
 
 
 @app.route('/')
@@ -50,6 +51,16 @@ def todo(id):
     return render_template('todo.html', todo=todo)
 
 
+@app.route('/todo/<id>/json', methods=['GET'])
+def todo_json(id):
+    cur = g.db.execute("SELECT * FROM todos WHERE id ='%s' AND user_id='%s'" % (id, session['user']['id']))
+    todo = cur.fetchone()
+    if todo:
+        return json.dumps({u"id": todo["id"], u"user_id": todo["user_id"], u"description": todo["description"]})
+    else:
+        return json.dumps({u"code": 404, u"message": "not found"})
+
+
 @app.route('/todo', methods=['GET'])
 @app.route('/todo/', methods=['GET'])
 def todos():
@@ -92,3 +103,5 @@ def todo_complete(id):
     g.db.execute("UPDATE todos SET status = %d WHERE id = '%s' AND user_id = '%s'" % (1, id, session['user']['id']))
     g.db.commit()
     return redirect('/todo')
+
+

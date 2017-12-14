@@ -68,7 +68,7 @@ def todos():
         return redirect('/login')
     cur = g.db.execute("SELECT * FROM todos WHERE user_id = '%s'" % session['user']['id'])
     todos = cur.fetchall()
-    return render_template('todos.html', todos=todos)
+    return render_template('todos.html', todos=todos, message=session.pop('message', None))
 
 
 @app.route('/todo', methods=['POST'])
@@ -83,6 +83,7 @@ def todos_POST():
             % (session['user']['id'], description)
         )
         g.db.commit()
+        session['message'] = "Your new todo as been correctly added"
     return redirect('/todo')
 
 
@@ -92,6 +93,7 @@ def todo_delete(id):
         return redirect('/login')
     g.db.execute("DELETE FROM todos WHERE id ='%s' AND user_id='%s'" % (id, session['user']['id']))
     g.db.commit()
+    session['message'] = "Your todo as been correctly removed"
     return redirect('/todo')
 
 
